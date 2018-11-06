@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>Integrales Babylon.js</title>
+        <script src="./Babylonjs/babylon.gui.min.js"></script>
+        <script src="./mathjs/math.min.js"></script>
+        <script src="./mathjs/math.js"></script>
+        <script src="./mathjs/math.min.map"></script>
+        <script src="./Babylonjs/dat.gui.min.js"></script>
+        <script src="./Babylonjs/babylon.js"></script>
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #myCanvas {
+                width: 100%;
+                height: 50%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <h1 style="text-align: center">Resolviendo integrales de forma alternativa</h1>
+    Introduzca la función a integrar:
+    <br>
+    &nbsp;&nbsp;&nbsp;&nbsp; f(x) = <input type="text" id="eq1" value="2x^2" style="text-align: left;"/>
+    <br>
+    <br>
+    Introduzca los limites:
+    <br>
+    &nbsp;&nbsp;&nbsp;&nbsp; xi = <input type="text" id="x1" value="1" style="text-align: left;" onchange="slider();"/>&nbsp;&nbsp; xf = <input type="text" id="x2" value="3" style="text-align: left;" onchange="slider();"/>
+    <p id="sliderMod">
+      Tamaño de la base de los rectangulos: &nbsp;&nbsp; <input type="range" min="1" max="2000000" value="1" id="slider" oninput="opera();" /> <label id="sliderValue">0.000001</label>
+    </p>
+    <button type="button" onclick="calcula();">Calcular</button>
+    <p id="Resultado">Aproximacion = </p>
+    <br>
+    <canvas id="myCanvas"></canvas>
+    <script>
+    var string ="";
+    var cont = 0;
+    var cont2 = 0;
+
+    //CREANDO ESCENA
+    var crearEscena = function () {
+      var escena = new BABYLON.Scene(motorGrafico);
+      escena.clearColor = new BABYLON.Color3(0, 0, 0);
+      var camara = new BABYLON.ArcRotateCamera("Camara", 0, 0.8, 50, new BABYLON.Vector3(0,0,0), escena);
+      camara.attachControl(canvas, true);
+
+      //LINEA A SUSTTITUIR
+      var puntos = [];
+      for(var i=-20; i<=20; i++){
+         puntos[cont]=new BABYLON.Vector3(0,0,i);
+         cont++;
+      }
+      var grafica = BABYLON.MeshBuilder.CreateLines("Grafica", {points: puntos, updatable: true}, escena);
+      var rectangulos = BABYLON.MeshBuilder.CreateLines("Rectangulos0", {points: puntos, updatable: true}, escena);
+      cont = 0;
+
+      //DEFINO LOS PUNTOS DE LOS EJES
+      //var puntos = [];
+      //var punto = new BABYLON.Vector3(z,y,x);
+      //EJE X
+      var puntosx = [];
+      var punto1x = new BABYLON.Vector3(0,0,20);
+      puntosx.push(punto1x);
+      var punto2x = new BABYLON.Vector3(0,0,-20);
+      puntosx.push(punto2x);
+
+      //EJE Y
+      var puntosy = [];
+      var punto1y = new BABYLON.Vector3(0,20,0);
+      puntosy.push(punto1y);
+      var punto2y = new BABYLON.Vector3(0,-20,0);
+      puntosy.push(punto2y);
+
+      //EJE Z
+      var puntosz = [];
+      var punto1z = new BABYLON.Vector3(20,0,0);
+      puntosz.push(punto1z);
+      var punto2z = new BABYLON.Vector3(-20,0,0);
+      puntosz.push(punto2z);
+
+      //ARRAYS DE COLORES
+      var azul = [new BABYLON.Color4(0,0,1,1), new BABYLON.Color4(0,0,1,1)];
+      var rojo = [new BABYLON.Color4(1,0,0,1), new BABYLON.Color4(1,0,0,1)];
+      var verde = [new BABYLON.Color4(0,1,0,1), new BABYLON.Color4(0,1,0,1)];
+
+      //CREO LOS EJES
+      var ejez = BABYLON.MeshBuilder.CreateLines("Eje Z", {points: puntosz, colors: verde}, escena);
+      var ejey = BABYLON.MeshBuilder.CreateLines("Eje Y", {points: puntosy, colors: rojo}, escena);
+      var ejex = BABYLON.MeshBuilder.CreateLines("Eje X", {points: puntosx, colors: azul}, escena);
+
+      return escena;
+    }
+
+    //BASE
+    var canvas = document.getElementById("myCanvas");
+
+    //SE RENDERIZA LA ESCENA
+    var motorGrafico = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+    var escena = crearEscena();
+    motorGrafico.runRenderLoop( function (){ if (escena) { escena.render(); } } );
+
+    // CAMBIO DE TAMAÑO AUTOMATICO
+    ventana.addEventListener("Redimension", function (){ motorGrafico.resize(); } );
+
+    //FUNCIONES
+    function calcula(){
+      //DIBUJO LA GRAFICA
+      var funcion = document.getElementById("eq1").value.toString();
+      while(funcion.includes(" "))
+        funcion = funcion.replace(" ","")
+      const expr = math.compile(funcion);
+
+      //BORRANDO RASTROS ANTERIORES
+      escena.getMeshByName("Grafica").dispose();
+      for(var i = 0; i<=cont2; i++){
+        string ="Rectangulos"+i;
+        escena.getMeshByName(string).dispose();
+      }
+
+      var puntos = [];
+      for(var i=-20; i<=20; i+=0.1){
+          if(expr.eval({x: i}) > 20 ||  expr.eval({x: i}) < -20){
+            cont = cont;
+          }else{
+            puntos[cont]=new BABYLON.Vector3(0,expr.eval({x: i}),i);
+            cont++;
+          }
+      }
+      BABYLON.MeshBuilder.CreateLines("Grafica", {points: puntos, updatable: true}, escena);
+      cont = 0;
+      cont2 = 0;
+
+      //CALCULO
+      var x1 = parseFloat(document.getElementById("x1").value);
+      var x2 = parseFloat(document.getElementById("x2").value);
+      var slider = parseFloat(document.getElementById("sliderValue").innerHTML);
+      var esquinas = [];
+      var aux1 = x1;
+      var aux2 = 0;
+      var base = 0;
+      var altura = parseFloat(0);
+      var area = 0;
+      var sumatoria = parseFloat(0);
+
+      for(var i=x1; i<x2; i+=slider){
+        aux2 = parseFloat(aux1+slider);
+        base = parseFloat(aux2-aux1);
+        altura = expr.eval({x: aux1});
+        area = parseFloat(base*altura);
+        sumatoria += area;
+
+        //var punto = new BABYLON.Vector3(z,y,x);
+        esquinas[cont]=new BABYLON.Vector3(0,0,aux1);
+        cont++;
+        esquinas[cont]=new BABYLON.Vector3(0,altura,aux1);
+        cont++;
+        esquinas[cont]=new BABYLON.Vector3(0,altura,aux2);
+        cont++;
+        esquinas[cont]=new BABYLON.Vector3(0,0,aux2);
+        string = "Rectangulos"+cont2;
+        BABYLON.MeshBuilder.CreateLines(string, {points: esquinas, updatable: true}, escena);
+        cont2++;
+
+        aux1=aux2;
+      }
+
+      document.getElementById("Resultado").innerHTML = "Aproximacion = " +sumatoria;
+      document.getElementById("sliderMod").innerHTML = "Tamaño de la base de los rectangulos: &nbsp;&nbsp; <input type='range' min='1' max='" +parseFloat((x2-x1)*1000000)+ "' value='1' id='slider' oninput='opera();' /> <label id='sliderValue'>0.000001</label>";
+
+      cont = 0;
+      cont2--;
+      aux2 = 0;
+      base = 0;
+      altura = 0;
+      area = 0;
+      sumatoria = 0;
+      string = "";
+    }
+
+    function opera(){
+      var slider = parseFloat(document.getElementById("sliderValue").innerHTML);
+      slider = document.getElementById("slider").value;
+      var valor = slider/1000000;
+      document.getElementById("sliderValue").innerHTML = valor;
+    }
+
+    function slider(){
+      var x1 = parseFloat(document.getElementById("x1").value);
+      var x2 = parseFloat(document.getElementById("x2").value);
+      document.getElementById("sliderMod").innerHTML = "Tamaño de la base de los rectangulos: &nbsp;&nbsp; <input type='range' min='1' max='" +parseFloat((x2-x1)*1000000)+ "' value='1' id='slider' oninput='opera();' /> <label id='sliderValue'>0.000001</label>";
+    }
+
+    </script>
+</body>
+</html>
